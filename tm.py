@@ -1,19 +1,16 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+import copy
 
 class TuringMachine(object):
-
     def __init__(self):
         self.memory=["",]
         self.memory_pointer=0
         self.current_state="q0"
-        self.settings=[]  
+        self.settings=[]
     
-    def preload_memory(self, l):
-        self.memory=l
-    
-    def set_current_state(self, state):
-        self.current_state=state
+    def __str__(self):
+        return "Memory:\n"+str(self.memory)+"\n\nMemory Pointer:\nM["+str(self.memory_pointer)+"]-->'"+str(self.memory[self.memory_pointer])+"'\n\nCurrent State:\n"+self.current_state
 
     def resize_memory(self):
         if self.memory_pointer < 0:
@@ -51,40 +48,58 @@ class TuringMachine(object):
         return False
 
 
-    def full_exec(self):
-        i=0
-        while self.execute():
-            print "############ step "+str(i)
-            print "Memory:"
-            print self.memory
-            print ""
-            print "Memory Pointer:"
-            print (self.memory_pointer, self.memory[self.memory_pointer])
-            print ""
-            print "Current State:"
-            print self.current_state
-            print ""
-            i+=1
-            
- 
+class ExecutionHandler(object):
+    def __init__(self):
+        self.step=0
+        self.back_stack=[]
+        self.current_machine=TuringMachine()
+        self.next_stack=[]    
 
-def main():
-    tm = TuringMachine()
+    def __init__(self, TuringMachine):
+        self.step=0
+        self.back_stack=[]
+        self.current_machine=TuringMachine
+        self.next_stack=[]    
 
-    # Configuración basica para un programa que multiplica por 2 un numero unario preseteado en memoria utilizando un simbolo auxiliar.
+    def __str__(self):
+        return  "\n--------Step: "+str(self.step)+"--------\n"+str(self.current_machine) 
 
-    tm.settings=[
-    # ( estado inicial, simbolo que reconoce, simbolo que deja en memoria, desplazamiento, estado final)
-    ("q0",'1','0','L','q1'),    
-    ("q1",'1','1','L','q1'),
-    ("q1",'' ,'1','R','q2'),
-    ("q2",'1','1','R','q2'),
-    ("q2",'0','1','R','q0'),
-    ]
-    tm.preload_memory(['','1','1',''])
-    tm.set_current_state("q0")
-    tm.memory_pointer=1
+    def run_step(self):
+        self.back_stack.append(copy.deepcopy(self.current_machine))
+        if self.current_machine.execute():           
+            self.next_stack=[]        
+            self.step+=1
+            return True
+        self.back_stack.pop()
+        return False
 
-    tm.full_exec()
+    def step_forward(self):
+        if self.next_stack:
+            self.back_stack.append(copy.deepcopy(self.current_machine))
+            self.current_machine=self.next_stack.pop()
+            self.step+=1
+            return True
+        return False
 
-main()
+    def step_back(self):
+        if self.back_stack:
+            self.next_stack.append(copy.deepcopy(self.current_machine))
+            self.current_machine=self.back_stack.pop()
+            self.step-=1
+            return True
+        return False
+
+    def execute(self):
+        print self
+        while self.run_step():
+            print self
+
+    def go_start(self):      
+        print self
+        while self.step_back():
+            print self
+
+    def go_end(self):      
+        print self
+        while self.step_forward():
+            print self
